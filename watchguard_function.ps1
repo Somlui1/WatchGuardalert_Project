@@ -94,6 +94,14 @@ function Invoke-MySqlQuery {
 }
 
 
+function FunctionName {
+    param (
+        [string]$htmlContent
+    )
+
+
+    
+}
 function Get-BlockedItemDetails {
     param (
         [string]$htmlContent
@@ -109,6 +117,7 @@ function Get-BlockedItemDetails {
     }
 # Extract Blocked item details
     $blockedItemDetailsTable = $htmlDoc.DocumentNode.SelectSingleNode("//h2[text()='Blocked item details']/following-sibling::table[1]")
+    #$firstH2 = $htmlDoc.DocumentNode.SelectSingleNode("//h2[1]/following-sibling::table")
     $rows = $blockedItemDetailsTable.SelectNodes(".//tr")
     foreach ($row in $rows) {
         $cells = $row.SelectNodes("th|td")
@@ -148,5 +157,35 @@ function Get-BlockedItemDetails {
             $details.OccurrencesOnTheNetwork += $object
         }
     }
+    return $details
+}
+function WatchGuard-tableD1 {
+    param (
+        [string]$htmlContent
+    )
+    
+    # Load the HTML content into an HtmlDocument object
+    $htmlDoc = New-Object 'HtmlAgilityPack.HtmlDocument'
+    $htmlDoc.LoadHtml($htmlContent)
+    
+    # Hashtable to store the details
+    $details = @{}
+    
+    # Extract Blocked item details
+    $blockedItemDetailsTable = $htmlDoc.DocumentNode.SelectSingleNode("//h2[1]/following-sibling::table")
+    
+    if ($blockedItemDetailsTable -ne $null) {
+        $rows = $blockedItemDetailsTable.SelectNodes(".//tr")
+        
+        foreach ($row in $rows) {
+            $cells = $row.SelectNodes("th|td")
+            if ($cells.Count -eq 2) {
+                $key = $cells[0].InnerText.TrimEnd(':')
+                $value = $cells[1].InnerText
+                $details[$key] = $value
+            }
+        }
+    }
+    
     return $details
 }
