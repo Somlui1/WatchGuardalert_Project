@@ -1,4 +1,4 @@
-
+Import-Module PowerHTML
 $htmlContent = @"
 <html>
    <head>
@@ -103,4 +103,15 @@ $htmlContent = @"
    </body>
 </html>
 "@
-
+$htmlDoc = New-Object 'HtmlAgilityPack.HtmlDocument'
+$htmlDoc.LoadHtml($htmlContent)
+$nodes = $htmlDoc.DocumentNode.SelectNodes("//h2[1]/following-sibling::table[1]//tbody")
+$node = $nodes[0]
+$newRow = $htmlDoc.CreateElement("tr")
+$newRow.InnerHtml = 
+@"
+ <th style="font-weight:normal; font-family:Campton,Century Gothic,Helvetica,Arial,sans-serif; text-align:left; font-size:15px!important; width:30%">username:</th>
+ <td style="font-family:Campton,Century Gothic,Helvetica,Arial,sans-serif; font-size:15px!important">Wajeepradit Prompan</td>
+"@
+$node.AppendChild($newRow)
+$htmlDoc.DocumentNode.OuterHtml

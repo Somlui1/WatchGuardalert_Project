@@ -1,3 +1,54 @@
+function Get-WatchGuardAccessToken {
+    param (
+        [string]$credentials,
+        [string]$url
+    )
+
+    # Step 1: Encode the combined string into Base64
+    $encoded_credentials = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($credentials))
+
+    # Step 2: Create the Authorization header
+    $authorization_header = "Basic $encoded_credentials"
+
+    # Step 3: Set up headers
+    $headers = @{
+        "accept" = "application/json"
+        "Authorization" = $authorization_header
+        "Content-Type" = "application/x-www-form-urlencoded"
+    }
+
+    # Step 4: Set up data
+    $data = @{
+        "grant_type" = "client_credentials"
+        "scope" = "api-access"
+    }
+
+    # Step 5: Get the access token
+    $response = Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $data
+
+    # Step 6: Return the access token
+    return $response.access_token
+}
+function Get-WatchGuardAPI {
+    param (
+        [string]$credentials,
+        [string]$url,
+        [string]$deviceid,
+        [string]$apiKey,
+        [string]$Pathurl 
+    )
+
+    $access_token = Get-WatchGuardAccessToken -credentials $credentials -url $url
+
+    $Pathheaders = @{
+        "accept" = "application/json"
+        "Content-Type" = "application/json"
+        "WatchGuard-API-Key" = $apiKey
+        "Authorization" = "Bearer $access_token"
+    }
+
+return $response = Invoke-RestMethod -Uri $Pathurl -Method Get -Headers $Pathheaders -TimeoutSec 120
+}
 function Get-ADUserInfo {
     param (
         [string]$user,
@@ -98,9 +149,6 @@ function FunctionName {
     param (
         [string]$htmlContent
     )
-
-
-    
 }
 function Get-BlockedItemDetails {
     param (
@@ -159,24 +207,21 @@ function Get-BlockedItemDetails {
     }
     return $details
 }
-function WatchGuard-tableD1 {
+function WatchGuard-tableD1
+{
     param (
         [string]$htmlContent
     )
-    
     # Load the HTML content into an HtmlDocument object
     $htmlDoc = New-Object 'HtmlAgilityPack.HtmlDocument'
     $htmlDoc.LoadHtml($htmlContent)
-    
     # Hashtable to store the details
     $details = @{}
-    
     # Extract Blocked item details
-    $blockedItemDetailsTable = $htmlDoc.DocumentNode.SelectSingleNode("//h2[1]/following-sibling::table")
-    
+    $blockedItemDetailsTable = $htmlDoc.DocumentNode.SelectSingleNode("//h2[1]/following-sibling::table")    
     if ($blockedItemDetailsTable -ne $null) {
         $rows = $blockedItemDetailsTable.SelectNodes(".//tr")
-        
+
         foreach ($row in $rows) {
             $cells = $row.SelectNodes("th|td")
             if ($cells.Count -eq 2) {
@@ -186,6 +231,18 @@ function WatchGuard-tableD1 {
             }
         }
     }
-    
     return $details
+}
+
+function Save-HTMLToFile {
+    param (
+        [string]$filePath,
+        [string]$htmlContent
+    )
+    try {
+        Set-Content -Path $filePath -Value $htmlContent -Force
+        Write-Host "HTML content successfully saved to $filePath"
+    } catch {
+        Write-Error "Failed to save HTML content to file: $_"
+    }
 }
