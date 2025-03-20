@@ -25,8 +25,6 @@ function Get-WatchGuardAccessToken {
     # Step 6: Return the access token
     return $response.access_token
 }
-
-
 $credentials = '583db905e5af13cd_r_id:it@minAPI1WGant!'
 $url = "https://api.jpn.cloud.watchguard.com/oauth/token"
 $access_token = Get-WatchGuardAccessToken -credentials $credentials -url $url

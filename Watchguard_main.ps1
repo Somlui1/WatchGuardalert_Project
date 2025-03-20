@@ -56,7 +56,13 @@ $today = (Get-Date).ToString("yyyy-MM-dd")
 $user = Get-MgUser -UserId $context.Account -Select 'displayName, id, mail, userPrincipalName'
 $emailAddress = "WGThreatAlert@pandasecurity.com"
 $messages = Get-MgUserMailFolderMessage -UserId $user.Id -MailFolderId 'inbox' -Filter "from/emailAddress/address eq '$emailAddress' and receivedDateTime ge $today" 
+
+if ($null -eq $messages) {
+    Write-Error "No messages found, exiting script."
+    exit 1
+}
 #$filteredMessages = $messages | Where-Object { $_.subject -match "block" }
+
 $data =@()
 foreach ($ms in $messages) {
     $detail = WatchGuard-tableD1 -htmlContent $ms.Body.Content
@@ -84,6 +90,7 @@ foreach ($ms in $messages) {
         detail = $detail
         api = $API
         ADaccounts = $ADaccounts
+        subject = $ms.Subject
     }
     $data += $dataItem
 }
@@ -103,9 +110,7 @@ foreach($dt in $data)
         IP = $api.ip_address
         "last_connection" = $api.last_connection
         "operating_system" = $api.operating_system
-
     }
-
 $htmlDoc = New-Object 'HtmlAgilityPack.HtmlDocument'
 $htmlDoc.LoadHtml($htmlContent)
 $nodes = $htmlDoc.DocumentNode.SelectNodes("//h2[1]/following-sibling::table[1]//tbody")
@@ -120,9 +125,19 @@ $newRow.InnerHtml = @"
 "@
 $node.AppendChild($newRow)
 }
-$htmlresult += $htmlDoc.DocumentNode.OuterHtml
+
+
+$htmlresult += [PSObject]@{
+    content = $htmlDoc.DocumentNode.OuterHtml
+    subject = $dt.subject
 }
 
+}
+foreach($html in $htmlresult)
+{
+sendmail -texthtml $html.content -subject "Rewrite : $($html.subject)" -sendto "wajeepradit.p@aapico.com"
+Write-Output "Sending Success !!"
+}
 #+=================+
 #|  Save File       |
 #+=================+
