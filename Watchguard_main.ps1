@@ -12,7 +12,6 @@ $url = "https://api.jpn.cloud.watchguard.com/oauth/token"
 #+=================+
 #|  Get WatchGuard  |
 #+=================+    
-
 $Pathurl = "https://api.jpn.cloud.watchguard.com/rest/endpoint-security/management/api/v1/accounts/WGC-3-981e96282dcc4ad0856c/devices"
 try {
     $response = Get-WatchGuardAPI -credentials $credentials -url $url -deviceid $deviceid -apiKey $apiKey -Pathurl $Pathurl
@@ -23,6 +22,31 @@ try {
     Write-Error "Failed to get WatchGuard API response: $_"
     exit 1
 }
+$datatype  = @(
+    "account_id",
+    "active_directory_canonical_name",
+    "agent_version",
+    "custom_group_folder_path",
+    "device_id",
+    "domain",
+    "encryption",
+    "host_name",
+    "ip_address",
+    "isolation_state",
+    "last_connection",
+    "license_status",
+    "logged_on_users_list",
+    "mac_addresses",
+    "operating_system",
+    "platform_id",
+    "reboot_requested",
+    "reinstall_agent_requested",
+    "reinstall_protection_requested",
+    "security_configuration_id",
+    "security_configuration_name",
+    "site_id",
+    "site_name",
+    "type")
 #+=================+
 #|  Connect to Graph | 
 #+=================+
@@ -34,29 +58,78 @@ $emailAddress = "WGThreatAlert@pandasecurity.com"
 $messages = Get-MgUserMailFolderMessage -UserId $user.Id -MailFolderId 'inbox' -Filter "from/emailAddress/address eq '$emailAddress' and receivedDateTime ge $today" 
 #$filteredMessages = $messages | Where-Object { $_.subject -match "block" }
 $data =@()
-foreach ($ms in $messages)
-{
-    $detail = WatchGuard-tableD1 -htmlContent $ms.Body.Content   
-    if ( $detail.computer -eq $null) {
+foreach ($ms in $messages) {
+    $detail = WatchGuard-tableD1 -htmlContent $ms.Body.Content
+    if ($detail.computer -eq $null) {
+        Write-Output "Not found"
         continue
     }
-  $dataItem = [PSCustomObject]@{
+    foreach ($re in $response.data) {
+        if ($detail.Computer -eq $re.host_name) {
+            Write-Output "found"
+            $API = $re
+            break
+        } else {
+            $API = $null
+        }
+    }
+    if ($API -ne $null) {
+        $parts = $API.logged_on_users_list -split '\\'
+        $ADaccounts = Get-ADUserInfo -domain $parts[0] -user $parts[1]
+    } else {
+        $ADaccounts = $null
+    }
+    $dataItem = [PSCustomObject]@{
         htmlContent = $ms.Body.Content
         detail = $detail
+        api = $API
+        ADaccounts = $ADaccounts
     }
     $data += $dataItem
 }
-
-foreach ($dt in $data)
+$htmlresult = @()
+foreach($dt in $data)
 {
-    $dt.detail | ForEach-Object {
-        $user = Get-ADUserInfo -user $_.user -domain $_.domain
-        $user
+    $htmlContent = $dt.htmlContent 
+    $detail = $dt.detail
+    $api = $dt.API
+    $ADaccounts = $dt.ADaccounts
+
+    $insertData = [PSCustomObject]@{
+        User = $ADaccounts.SamAccountName
+        Department = $ADaccounts.Department
+        Company = $ADaccounts.Company
+        domain = $api.domain
+        IP = $api.ip_address
+        "last_connection" = $api.last_connection
+        "operating_system" = $api.operating_system
+
     }
+
+$htmlDoc = New-Object 'HtmlAgilityPack.HtmlDocument'
+$htmlDoc.LoadHtml($htmlContent)
+$nodes = $htmlDoc.DocumentNode.SelectNodes("//h2[1]/following-sibling::table[1]//tbody")
+$node = $nodes[0]
+$trad = ""
+foreach($ob in $insertData.PSObject.Properties.name)
+{
+$newRow = $htmlDoc.CreateElement("tr")
+$newRow.InnerHtml = @"
+<th style='font-weight:normal; font-family:Campton,Century Gothic,Helvetica,Arial,sans-serif; text-align:left; font-size:15px!important; width:30%'>$($ob):</th>
+<td style='font-family:Campton,Century Gothic,Helvetica,Arial,sans-serif; font-size:15px!important'>$($insertData.$($ob))</td>
+"@
+$node.AppendChild($newRow)
 }
+$htmlresult += $htmlDoc.DocumentNode.OuterHtml
+}
+
 #+=================+
 #|  Save File       |
 #+=================+
+
 # Example usage:
-$filePath = "C:\Users\wajeepradit.p\OneDrive - AAPICO Hitech PCL\project\script\Automation Task\GrphAPI\WatchGuard\main\index.html"
+
+#$filePath = "C:\Users\wajeepradit.p\OneDrive - AAPICO Hitech PCL\project\script\Automation Task\GrphAPI\WatchGuard\main\index.html"
+
 #Save-HTMLToFile -filePath $filePath -htmlContent
+# Define the array of user accounts

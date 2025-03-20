@@ -1,3 +1,27 @@
+function insertHtml {
+   param (
+      [string]$htmlContent,
+      [string]$insertObject
+   )
+   $htmlDoc = New-Object 'HtmlAgilityPack.HtmlDocument'
+$htmlDoc.LoadHtml($htmlContent)
+$nodes = $htmlDoc.DocumentNode.SelectNodes("//h2[1]/following-sibling::table[1]//tbody")
+$node = $nodes[0]
+$newRow = $htmlDoc.CreateElement("tr")
+
+foreach($ob in $insertObject.PSObject.Properties.name)
+{
+$newRow.InnerHtml += @"
+ <th style='font-weight:normal; font-family:Campton,Century Gothic,Helvetica,Arial,sans-serif; text-align:left; font-size:15px!important; width:30%'>$($ob):</th>
+ <td style='font-family:Campton,Century Gothic,Helvetica,Arial,sans-serif; font-size:15px!important'>$($insertObject.$ob)</td>
+"@
+}
+$node.AppendChild($newRow)
+return $htmlDoc.DocumentNode.OuterHtml
+}
+
+
+
 function Get-WatchGuardAccessToken {
     param (
         [string]$credentials,
@@ -56,7 +80,8 @@ function Get-ADUserInfo {
     )
 
     # Define domain-specific credentials
-    switch ($domain.ToLower()) {
+    switch ($domain.ToLower()) 
+    {
         'aapico' {
             $domainController = 'aapico.com'
             $username = "aapico\ahroot"
@@ -68,21 +93,22 @@ function Get-ADUserInfo {
             $password = ConvertTo-SecureString "support" -AsPlainText -Force
         }
         default {
-            Write-Output "Invalid domain"
-            return
+            return [PSCustomObject]@{
+                SamAccountName = $user
+                Department     = $null
+                Company        = $null
         }
     }
-
+}
     # Create the PSCredential object
     $credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $username, $password
-
     # Retrieve the user from the specified domain
     try {
         $user1 = Get-ADUser -Identity $user -Server $domainController -Credential $credential -Properties department, company | Select-Object department,company
         if ($user) {
             # Return the user information
             return [PSCustomObject]@{
-                SamAccountName = $user1.SamAccountName
+                SamAccountName = $user
                 Department     = $user1.Department
                 Company        = $user1.Company
             }
@@ -143,8 +169,6 @@ function Invoke-MySqlQuery {
     # Return the data
     return $data
 }
-
-
 function FunctionName {
     param (
         [string]$htmlContent
