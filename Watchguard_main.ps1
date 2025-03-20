@@ -56,13 +56,15 @@ $today = (Get-Date).ToString("yyyy-MM-dd")
 $user = Get-MgUser -UserId $context.Account -Select 'displayName, id, mail, userPrincipalName'
 $emailAddress = "WGThreatAlert@pandasecurity.com"
 $messages = Get-MgUserMailFolderMessage -UserId $user.Id -MailFolderId 'inbox' -Filter "from/emailAddress/address eq '$emailAddress' and receivedDateTime ge $today" 
-
+$destinationFolder = Get-MgUserMailFolder -UserId $user.Id -MailFolderId 'archive' # Change 'archive' to your desired folder
 if ($null -eq $messages) {
     Write-Error "No messages found, exiting script."
     exit 1
 }
+$messages  | ForEach-Object {
+        Move-MgUserMessage -UserId $user.Id -MessageId $_.Id -DestinationId "AAMkADg0ZGMxNWJhLTEwYmYtNGZlOC1iZTNhLThkMDA1MjlkZDJkZAAuAAAAAABgMXAAPDLQT4HfJxmfhRG8AQBkvK5jCAHYT6tzQpMQ0K-pAAAAABKxAAA="
+}
 #$filteredMessages = $messages | Where-Object { $_.subject -match "block" }
-
 $data =@()
 foreach ($ms in $messages) {
     $detail = WatchGuard-tableD1 -htmlContent $ms.Body.Content
@@ -125,19 +127,18 @@ $newRow.InnerHtml = @"
 "@
 $node.AppendChild($newRow)
 }
-
-
 $htmlresult += [PSObject]@{
     content = $htmlDoc.DocumentNode.OuterHtml
     subject = $dt.subject
 }
-
 }
 foreach($html in $htmlresult)
 {
 sendmail -texthtml $html.content -subject "Rewrite : $($html.subject)" -sendto "wajeepradit.p@aapico.com"
 Write-Output "Sending Success !!"
 }
+
+
 #+=================+
 #|  Save File       |
 #+=================+
