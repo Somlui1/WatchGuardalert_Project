@@ -1,10 +1,9 @@
 Import-Module PowerHTML
 . .\watchguard_function.ps1
-#$clientId =  "ec1e5f36-4262-4ead-a5d7-9ab8892a950b"
-#$tenantId =  "a4722e58-ec99-4c3b-a34c-38620f1c4288"
-#$graphScopes = "User.Read.All mail.read mail.send Mail.ReadWrite"
-# Authenticate the user
-#Connect-MgGraph -ClientId $clientId -TenantId $tenantId -Scopes $graphScopes -UseDeviceAuthentication
+$clientId =  "ec1e5f36-4262-4ead-a5d7-9ab8892a950b"
+$tenantId =  "a4722e58-ec99-4c3b-a34c-38620f1c4288"
+Connect-MgGraph -ClientId $clientId -TenantId $tenantId -CertificateThumbprint "BDE04873ABD2F62E41102076CD5650C91EC7CF78"
+
 $apiKey = "FfSghSoNzPlloALCK9LN5E46rzGnAYqxJ+mgirtf"
 $deviceid = "59b67837-e144-4021-bd2b-a21246aecac7"
 $credentials = '583db905e5af13cd_r_id:it@minAPI1WGant!'
@@ -50,19 +49,16 @@ $datatype  = @(
 #+=================+
 #|  Connect to Graph | 
 #+=================+
-Connect-MgGraph 
-$context = Get-MgContext
+#Connect-MgGraph 
+
 $today = (Get-Date).ToString("yyyy-MM-dd")
-$user = Get-MgUser -UserId $context.Account -Select 'displayName, id, mail, userPrincipalName'
+$user = Get-MgUser -UserId "wajeepradit.p@aapico.com" -Select 'displayName, id, mail, userPrincipalName'
 $emailAddress = "WGThreatAlert@pandasecurity.com"
 $messages = Get-MgUserMailFolderMessage -UserId $user.Id -MailFolderId 'inbox' -Filter "from/emailAddress/address eq '$emailAddress' and receivedDateTime ge $today" 
 $destinationFolder = Get-MgUserMailFolder -UserId $user.Id -MailFolderId 'archive' # Change 'archive' to your desired folder
 if ($null -eq $messages) {
     Write-Error "No messages found, exiting script."
     exit 1
-}
-$messages  | ForEach-Object {
-        Move-MgUserMessage -UserId $user.Id -MessageId $_.Id -DestinationId "AAMkADg0ZGMxNWJhLTEwYmYtNGZlOC1iZTNhLThkMDA1MjlkZDJkZAAuAAAAAABgMXAAPDLQT4HfJxmfhRG8AQBkvK5jCAHYT6tzQpMQ0K-pAAAAABKxAAA="
 }
 #$filteredMessages = $messages | Where-Object { $_.subject -match "block" }
 $data =@()
@@ -95,6 +91,7 @@ foreach ($ms in $messages) {
         subject = $ms.Subject
     }
     $data += $dataItem
+     Move-MgUserMessage -UserId $user.Id -MessageId $ms.Id -DestinationId "AAMkADg0ZGMxNWJhLTEwYmYtNGZlOC1iZTNhLThkMDA1MjlkZDJkZAAuAAAAAABgMXAAPDLQT4HfJxmfhRG8AQBkvK5jCAHYT6tzQpMQ0K-pAACbQHE8AAA="
 }
 $htmlresult = @()
 foreach($dt in $data)
@@ -137,15 +134,10 @@ foreach($html in $htmlresult)
 sendmail -texthtml $html.content -subject "Rewrite : $($html.subject)" -sendto "wajeepradit.p@aapico.com"
 Write-Output "Sending Success !!"
 }
-
-
 #+=================+
 #|  Save File       |
 #+=================+
-
 # Example usage:
-
 #$filePath = "C:\Users\wajeepradit.p\OneDrive - AAPICO Hitech PCL\project\script\Automation Task\GrphAPI\WatchGuard\main\index.html"
-
 #Save-HTMLToFile -filePath $filePath -htmlContent
 # Define the array of user accounts

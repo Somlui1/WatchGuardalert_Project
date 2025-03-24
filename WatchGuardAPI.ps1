@@ -30,7 +30,7 @@ $url = "https://api.jpn.cloud.watchguard.com/oauth/token"
 $access_token = Get-WatchGuardAccessToken -credentials $credentials -url $url
 # Step 5: Make the second API request
 $deviceid = "59b67837-e144-4021-bd2b-a21246aecac7"
-$Pathurl = "https://api.jpn.cloud.watchguard.com/rest/endpoint-security/management/api/v1/accounts/WGC-3-981e96282dcc4ad0856c/devices"
+$Pathurl = "https://api.jpn.cloud.watchguard.com/rest/endpoint-security/management/api/v1/accounts/WGC-3-981e96282dcc4ad0856c/patchavailability?`$count=true&`$top=100"
 #$Pathurl = "https://api.jpn.cloud.watchguard.com/rest/endpoint-security/management/api/v1/accounts/WGC-3-981e96282dcc4ad0856c/devicesprotectionstatus?`$top=2&`$count=true"
 $Pathheaders = @{
     "accept" = "application/json"
